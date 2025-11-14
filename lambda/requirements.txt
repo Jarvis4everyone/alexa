@@ -1,4 +1,2 @@
 # we also need requests, but that's included by the ask sdk
 ask-sdk-core
-edge-tts
-boto3
