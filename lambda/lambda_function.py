@@ -23,6 +23,12 @@ GITHUB_AUDIO_FOLDER = "audio"
 # Cache for audio files list (to avoid API calls on every request)
 _audio_files_cache = None
 
+# Text to display on card (shown on card)
+RESPONSE = "You're good enough, you're smart enough, and dog gone it, people like you!"
+
+# The name of your skill (shown on cards)
+SKILL_NAME = "Custom TTS Voice"
+
 def get_audio_files_from_github():
     """
     Fetches the list of audio files from GitHub repository.
@@ -84,8 +90,10 @@ def get_random_audio_url():
     # Randomly select an audio file
     selected_file = random.choice(audio_files)
     
-    # Construct GitHub raw URL
-    url = f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_AUDIO_FOLDER}/{urllib.parse.quote(selected_file)}"
+    # Construct GitHub raw URL - encode the filename properly
+    # GitHub raw URLs need spaces encoded as %20, parentheses as %28 and %29
+    encoded_file = urllib.parse.quote(selected_file, safe='')
+    url = f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_AUDIO_FOLDER}/{encoded_file}"
     
     logging.info(f"Selected random audio file: {selected_file}, URL: {url}")
     return url
@@ -187,8 +195,8 @@ def all_exception_handler(handler_input, exception):
     logger.error(exception, exc_info=True)
     speech = "Sorry, there was a problem. Please try again!"
     synth = synthesize(speech)
-    handler_input.response_builder.speak(synth["audio"]).ask(synth["audio"])
-    return handler_input.response_builder.response
+    # Don't add reprompt - just play audio and end session
+    return handler_input.response_builder.speak(synth["audio"]).set_should_end_session(True).response
 
 # special assignment for AWS Lambda
 lambda_handler = sb.lambda_handler()
