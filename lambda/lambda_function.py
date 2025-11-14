@@ -1,8 +1,5 @@
 import logging
 import random
-import json
-import urllib.request
-import urllib.parse
 
 from ask_sdk_core.skill_builder import SkillBuilder
 from ask_sdk_core.utils import is_request_type, is_intent_name
@@ -15,66 +12,29 @@ GITHUB_REPO = "Jarvis4everyone/alexa"
 GITHUB_BRANCH = "main"
 GITHUB_AUDIO_FOLDER = "audio"
 
+# Hardcoded audio file URLs (1.mp3 through 10.mp3)
+AUDIO_URLS = [
+    f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_AUDIO_FOLDER}/1.mp3",
+    f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_AUDIO_FOLDER}/2.mp3",
+    f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_AUDIO_FOLDER}/3.mp3",
+    f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_AUDIO_FOLDER}/4.mp3",
+    f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_AUDIO_FOLDER}/5.mp3",
+    f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_AUDIO_FOLDER}/6.mp3",
+    f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_AUDIO_FOLDER}/7.mp3",
+    f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_AUDIO_FOLDER}/8.mp3",
+    f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_AUDIO_FOLDER}/9.mp3",
+    f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_AUDIO_FOLDER}/10.mp3",
+]
+
 RESPONSE = "You're good enough, you're smart enough, and dog gone it, people like you!"
 SKILL_NAME = "Custom TTS Voice"
 
-# Cache for audio files list
-_audio_files_cache = None
-
-
-def get_audio_files_from_github():
-    """Fetches list of .mp3 files from GitHub repository."""
-    global _audio_files_cache
-    
-    if _audio_files_cache is not None:
-        logging.info(f"Using cached audio files: {len(_audio_files_cache)} files")
-        return _audio_files_cache
-    
-    try:
-        api_url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{GITHUB_AUDIO_FOLDER}"
-        req = urllib.request.Request(api_url)
-        req.add_header('Accept', 'application/vnd.github.v3+json')
-        
-        with urllib.request.urlopen(req, timeout=5) as response:
-            data = json.loads(response.read().decode())
-            audio_files = [
-                item['name'] 
-                for item in data 
-                if isinstance(item, dict) and item.get('name', '').endswith('.mp3')
-            ]
-            
-            # Sort files to ensure consistent ordering
-            audio_files.sort()
-            
-            if audio_files:
-                _audio_files_cache = audio_files
-                logging.info(f"Found {len(audio_files)} audio files: {audio_files}")
-            else:
-                logging.warning("No .mp3 files found in GitHub repository")
-            
-            return audio_files
-    except Exception as e:
-        logging.error(f"Error fetching audio files: {str(e)}", exc_info=True)
-        return []
-
 
 def get_random_audio_url():
-    """Returns a random GitHub raw URL for an audio file."""
-    audio_files = get_audio_files_from_github()
-    
-    if not audio_files:
-        raise Exception("No audio files found in GitHub repository")
-    
-    if len(audio_files) != 10:
-        logging.warning(f"Expected 10 files, but found {len(audio_files)} files")
-    
-    selected_file = random.choice(audio_files)
-    # Simple filenames like "1.mp3" don't need encoding, but encode just to be safe
-    encoded_file = urllib.parse.quote(selected_file, safe='')
-    url = f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_AUDIO_FOLDER}/{encoded_file}"
-    
-    logging.info(f"Randomly selected file {selected_file} from {len(audio_files)} available files")
-    return url
+    """Returns a random audio file URL from hardcoded list."""
+    selected_url = random.choice(AUDIO_URLS)
+    logging.info(f"Randomly selected audio file: {selected_url}")
+    return selected_url
 
 
 def get_audio_response():
