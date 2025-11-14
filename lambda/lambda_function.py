@@ -13,17 +13,18 @@ GITHUB_BRANCH = "main"
 GITHUB_AUDIO_FOLDER = "audio"
 
 # Hardcoded audio file URLs (1.mp3 through 10.mp3)
+# Using raw.githubusercontent.com for direct file access (required for Alexa)
 AUDIO_URLS = [
-    f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_AUDIO_FOLDER}/1.mp3",
-    f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_AUDIO_FOLDER}/2.mp3",
-    f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_AUDIO_FOLDER}/3.mp3",
-    f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_AUDIO_FOLDER}/4.mp3",
-    f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_AUDIO_FOLDER}/5.mp3",
-    f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_AUDIO_FOLDER}/6.mp3",
-    f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_AUDIO_FOLDER}/7.mp3",
-    f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_AUDIO_FOLDER}/8.mp3",
-    f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_AUDIO_FOLDER}/9.mp3",
-    f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_AUDIO_FOLDER}/10.mp3",
+    "https://raw.githubusercontent.com/Jarvis4everyone/alexa/main/audio/1.mp3",
+    "https://raw.githubusercontent.com/Jarvis4everyone/alexa/main/audio/2.mp3",
+    "https://raw.githubusercontent.com/Jarvis4everyone/alexa/main/audio/3.mp3",
+    "https://raw.githubusercontent.com/Jarvis4everyone/alexa/main/audio/4.mp3",
+    "https://raw.githubusercontent.com/Jarvis4everyone/alexa/main/audio/5.mp3",
+    "https://raw.githubusercontent.com/Jarvis4everyone/alexa/main/audio/6.mp3",
+    "https://raw.githubusercontent.com/Jarvis4everyone/alexa/main/audio/7.mp3",
+    "https://raw.githubusercontent.com/Jarvis4everyone/alexa/main/audio/8.mp3",
+    "https://raw.githubusercontent.com/Jarvis4everyone/alexa/main/audio/9.mp3",
+    "https://raw.githubusercontent.com/Jarvis4everyone/alexa/main/audio/10.mp3",
 ]
 
 RESPONSE = "You're good enough, you're smart enough, and dog gone it, people like you!"
