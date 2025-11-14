@@ -1,6 +1,9 @@
 import logging
 import os
 import random
+import json
+import urllib.request
+import urllib.parse
 
 from ask_sdk_core.skill_builder import SkillBuilder
 from ask_sdk_core.utils import is_request_type, is_intent_name
@@ -13,41 +16,76 @@ from ask_sdk_model import Response
 # Customize your skill here!
 ###############################################################################
 # GitHub Configuration for audio files
-# Upload audio files to your GitHub repo in the 'audio' folder
-# Format: https://raw.githubusercontent.com/USERNAME/REPO/BRANCH/audio/FILENAME.mp3
 GITHUB_REPO = "Jarvis4everyone/alexa"
 GITHUB_BRANCH = "main"
 GITHUB_AUDIO_FOLDER = "audio"
 
-# List of audio files to randomly choose from
-# Add more audio files to the 'audio' folder and add their names here
-AUDIO_FILES = [
-    "speech.mp3",
-    # Add more audio files here, e.g.:
-    # "greeting.mp3",
-    # "motivation.mp3",
-    # "goodbye.mp3",
-]
+# Cache for audio files list (to avoid API calls on every request)
+_audio_files_cache = None
 
-# text to read as a response (shown on card)
-RESPONSE = "You're good enough, you're smart enough, and dog gone it, people like you!"
-
-# the name of your skill (shown on cards)
-SKILL_NAME = "Custom TTS Voice"
+def get_audio_files_from_github():
+    """
+    Fetches the list of audio files from GitHub repository.
+    Returns a list of filenames.
+    """
+    global _audio_files_cache
+    
+    # Use cache if available
+    if _audio_files_cache is not None:
+        return _audio_files_cache
+    
+    try:
+        # GitHub API endpoint to list repository contents
+        api_url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{GITHUB_AUDIO_FOLDER}"
+        
+        logging.info(f"Fetching audio files from GitHub: {api_url}")
+        
+        # Make request to GitHub API
+        req = urllib.request.Request(api_url)
+        req.add_header('Accept', 'application/vnd.github.v3+json')
+        
+        with urllib.request.urlopen(req, timeout=5) as response:
+            data = json.loads(response.read().decode())
+            
+            # Filter for .mp3 files
+            audio_files = [
+                item['name'] 
+                for item in data 
+                if isinstance(item, dict) and item.get('name', '').endswith('.mp3')
+            ]
+            
+            if not audio_files:
+                logging.warning("No .mp3 files found in GitHub audio folder")
+                return []
+            
+            logging.info(f"Found {len(audio_files)} audio files: {audio_files}")
+            
+            # Cache the result
+            _audio_files_cache = audio_files
+            return audio_files
+            
+    except Exception as e:
+        logging.error(f"Error fetching audio files from GitHub: {str(e)}", exc_info=True)
+        # Return empty list on error
+        return []
 
 
 def get_random_audio_url():
     """
     Returns a random GitHub raw URL for an audio file.
+    Automatically detects all audio files from GitHub.
     """
-    if not AUDIO_FILES:
-        raise Exception("No audio files configured in AUDIO_FILES list")
+    # Get list of audio files from GitHub
+    audio_files = get_audio_files_from_github()
+    
+    if not audio_files:
+        raise Exception("No audio files found in GitHub repository")
     
     # Randomly select an audio file
-    selected_file = random.choice(AUDIO_FILES)
+    selected_file = random.choice(audio_files)
     
     # Construct GitHub raw URL
-    url = f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_AUDIO_FOLDER}/{selected_file}"
+    url = f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_AUDIO_FOLDER}/{urllib.parse.quote(selected_file)}"
     
     logging.info(f"Selected random audio file: {selected_file}, URL: {url}")
     return url
@@ -101,22 +139,22 @@ def _create_response(response_builder, synthesized, end_session=True):
 
 @sb.request_handler(can_handle_func=is_request_type("LaunchRequest"))
 def launch_request_handler(handler_input):
-    """Handler for skill launch."""
+    """Handler for skill launch - plays random audio and stops."""
     synth = synthesize(RESPONSE)
-    return _create_response(handler_input.response_builder, synth)
+    return _create_response(handler_input.response_builder, synth, end_session=True)
 
 @sb.request_handler(can_handle_func=is_intent_name("MotivateIntent"))
 def motivate_intent_handler(handler_input):
-    """Handler for MotivateIntent."""
+    """Handler for MotivateIntent - plays random audio and stops."""
     synth = synthesize(RESPONSE)
-    return _create_response(handler_input.response_builder, synth)
+    return _create_response(handler_input.response_builder, synth, end_session=True)
 
 @sb.request_handler(can_handle_func=is_intent_name("AMAZON.HelpIntent"))
 def help_intent_handler(handler_input):
     """Handler for HelpIntent."""
     help_text = "Ask me to motivate you!"
     synth = synthesize(help_text)
-    return _create_response(handler_input.response_builder, synth, False)
+    return _create_response(handler_input.response_builder, synth, end_session=True)
 
 @sb.request_handler(
     can_handle_func=lambda handler_input:
@@ -125,7 +163,7 @@ def help_intent_handler(handler_input):
 def cancel_and_stop_intent_handler(handler_input):
     """Single handler for CancelIntent and StopIntent."""
     synth = synthesize("Goodbye for now!")
-    return _create_response(handler_input.response_builder, synth, False)
+    return _create_response(handler_input.response_builder, synth, end_session=True)
 
 @sb.request_handler(can_handle_func=is_intent_name("AMAZON.FallbackIntent"))
 def fallback_handler(handler_input):
