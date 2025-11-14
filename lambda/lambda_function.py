@@ -13,18 +13,18 @@ GITHUB_BRANCH = "main"
 GITHUB_AUDIO_FOLDER = "audio"
 
 # Hardcoded audio file URLs (1.mp3 through 10.mp3)
-# Using raw.githubusercontent.com for direct file access (required for Alexa)
+# Using jsDelivr CDN which serves GitHub files with proper Content-Type headers for audio
 AUDIO_URLS = [
-    "https://raw.githubusercontent.com/Jarvis4everyone/alexa/main/audio/1.mp3",
-    "https://raw.githubusercontent.com/Jarvis4everyone/alexa/main/audio/2.mp3",
-    "https://raw.githubusercontent.com/Jarvis4everyone/alexa/main/audio/3.mp3",
-    "https://raw.githubusercontent.com/Jarvis4everyone/alexa/main/audio/4.mp3",
-    "https://raw.githubusercontent.com/Jarvis4everyone/alexa/main/audio/5.mp3",
-    "https://raw.githubusercontent.com/Jarvis4everyone/alexa/main/audio/6.mp3",
-    "https://raw.githubusercontent.com/Jarvis4everyone/alexa/main/audio/7.mp3",
-    "https://raw.githubusercontent.com/Jarvis4everyone/alexa/main/audio/8.mp3",
-    "https://raw.githubusercontent.com/Jarvis4everyone/alexa/main/audio/9.mp3",
-    "https://raw.githubusercontent.com/Jarvis4everyone/alexa/main/audio/10.mp3",
+    "https://cdn.jsdelivr.net/gh/Jarvis4everyone/alexa@main/audio/1.mp3",
+    "https://cdn.jsdelivr.net/gh/Jarvis4everyone/alexa@main/audio/2.mp3",
+    "https://cdn.jsdelivr.net/gh/Jarvis4everyone/alexa@main/audio/3.mp3",
+    "https://cdn.jsdelivr.net/gh/Jarvis4everyone/alexa@main/audio/4.mp3",
+    "https://cdn.jsdelivr.net/gh/Jarvis4everyone/alexa@main/audio/5.mp3",
+    "https://cdn.jsdelivr.net/gh/Jarvis4everyone/alexa@main/audio/6.mp3",
+    "https://cdn.jsdelivr.net/gh/Jarvis4everyone/alexa@main/audio/7.mp3",
+    "https://cdn.jsdelivr.net/gh/Jarvis4everyone/alexa@main/audio/8.mp3",
+    "https://cdn.jsdelivr.net/gh/Jarvis4everyone/alexa@main/audio/9.mp3",
+    "https://cdn.jsdelivr.net/gh/Jarvis4everyone/alexa@main/audio/10.mp3",
 ]
 
 RESPONSE = "You're good enough, you're smart enough, and dog gone it, people like you!"
@@ -42,7 +42,7 @@ def get_audio_response():
     """Returns SSML audio tag with random GitHub audio file."""
     try:
         audio_url = get_random_audio_url()
-        # Return just the audio tag - Alexa will wrap it in <speak>
+        # Return audio tag with explicit attributes for better compatibility
         return f'<audio src="{audio_url}"/>'
     except Exception as e:
         logging.error(f"Error: {str(e)}")
