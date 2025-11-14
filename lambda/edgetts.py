@@ -48,6 +48,13 @@ class EdgeTTSClient:
         
         if s3_bucket and boto3:
             self.s3_client = boto3.client("s3", region_name=s3_region)
+        
+        # Verify edge_tts is importable
+        try:
+            import edge_tts as et
+            self._edge_tts_module = et
+        except ImportError as e:
+            raise ImportError(f"Failed to import edge_tts: {str(e)}")
 
     def synthesize(self, text: str) -> str:
         """
@@ -59,22 +66,50 @@ class EdgeTTSClient:
         Returns:
             str: URL to the audio file (S3 URL if S3 is configured, otherwise temporary)
         """
+        import time
+        
         if not text or not text.strip():
             raise ValueError("Text cannot be empty")
         
-        # Run the async synthesis
+        # Run the async synthesis with timeout
         # Handle event loop for Lambda environment
         try:
+            # Try to get the existing event loop
             loop = asyncio.get_event_loop()
             if loop.is_closed():
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
+                raise RuntimeError("Loop is closed")
         except RuntimeError:
+            # No event loop exists, create a new one
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
         
         try:
-            audio_data = loop.run_until_complete(self._synthesize_async(text))
+            # Run the async function with a timeout (15 seconds for Lambda - EdgeTTS can be slow)
+            start_time = time.time()
+            import logging
+            logging.info(f"Starting async synthesis with timeout of 15 seconds...")
+            
+            audio_data = loop.run_until_complete(
+                asyncio.wait_for(self._synthesize_async(text), timeout=15.0)
+            )
+            elapsed = time.time() - start_time
+            
+            # Check if we got audio data
+            if not audio_data or len(audio_data) == 0:
+                raise Exception("No audio was received. Please verify that your parameters are correct.")
+            
+            # Log success
+            logging.info(f"EdgeTTS synthesis completed in {elapsed:.2f}s, audio size: {len(audio_data)} bytes")
+            
+        except asyncio.TimeoutError:
+            import logging
+            logging.error("EdgeTTS synthesis timed out after 15 seconds")
+            raise Exception("EdgeTTS synthesis timed out after 15 seconds. This might indicate a network issue or the service is slow.")
+        except Exception as e:
+            # Re-raise with more context
+            import logging
+            logging.error(f"EdgeTTS synthesis failed in synthesize() method: {str(e)}", exc_info=True)
+            raise Exception(f"EdgeTTS synthesis failed: {str(e)}")
         finally:
             # Don't close the loop in Lambda - it might be reused
             pass
@@ -88,13 +123,80 @@ class EdgeTTSClient:
             return self._create_data_uri(audio_data)
 
     async def _synthesize_async(self, text: str) -> bytes:
-        """Async method to synthesize text using EdgeTTS."""
-        communicate = edge_tts.Communicate(text, self.voice)
-        audio_data = b""
-        async for chunk in communicate.stream():
-            if chunk["type"] == "audio":
-                audio_data += chunk["data"]
-        return audio_data
+        """Async method to synthesize text using EdgeTTS.
+        Based on working implementation that uses communicate.save() method.
+        """
+        import logging
+        import tempfile
+        import os
+        
+        temp_file_path = None
+        try:
+            logging.info(f"Starting EdgeTTS synthesis with voice: {self.voice}, text length: {len(text)}")
+            
+            # Use the exact same pattern as the working code:
+            # communicate = edge_tts.Communicate(text, voice)
+            # await communicate.save(file_path)
+            communicate = self._edge_tts_module.Communicate(text, self.voice)
+            
+            # Use a temporary file (Lambda /tmp directory) to save the audio
+            # This matches the working pattern of saving to a file path
+            try:
+                # Create a temporary file in /tmp (Lambda's writable directory)
+                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.mp3', dir='/tmp')
+                temp_file_path = temp_file.name
+                temp_file.close()  # Close so edge_tts can write to it
+                
+                logging.info(f"Created temp file: {temp_file_path}, exists: {os.path.exists(temp_file_path)}")
+                
+                # Use save() method exactly like the working code
+                logging.info("Calling communicate.save()...")
+                try:
+                    await communicate.save(temp_file_path)
+                    logging.info("communicate.save() completed")
+                except Exception as save_error:
+                    logging.error(f"Error during communicate.save(): {str(save_error)}", exc_info=True)
+                    raise Exception(f"Failed to save audio file: {str(save_error)}")
+                
+                # Check if file was created and has content
+                if not os.path.exists(temp_file_path):
+                    raise Exception(f"Temp file was not created at {temp_file_path}")
+                
+                file_size = os.path.getsize(temp_file_path)
+                logging.info(f"File exists, size: {file_size} bytes")
+                
+                if file_size == 0:
+                    raise Exception("File was created but is empty (0 bytes)")
+                
+                # Read the file back into bytes
+                with open(temp_file_path, 'rb') as f:
+                    audio_data = f.read()
+                
+                logging.info(f"Successfully read {len(audio_data)} bytes from file")
+                
+                if not audio_data or len(audio_data) == 0:
+                    raise Exception(f"File exists but read returned empty data. File size: {file_size} bytes")
+                
+                return audio_data
+                
+            except Exception as file_error:
+                logging.error(f"File operation error: {str(file_error)}", exc_info=True)
+                raise
+            finally:
+                # Clean up temporary file
+                if temp_file_path and os.path.exists(temp_file_path):
+                    try:
+                        os.unlink(temp_file_path)
+                        logging.info("Cleaned up temporary file")
+                    except Exception as cleanup_error:
+                        logging.warning(f"Could not delete temp file: {str(cleanup_error)}")
+            
+        except Exception as e:
+            # Provide more helpful error message with full traceback
+            import traceback
+            error_trace = traceback.format_exc()
+            logging.error(f"EdgeTTS synthesis error: {str(e)}\nTraceback: {error_trace}")
+            raise Exception(f"EdgeTTS synthesis error: {str(e)}. Voice: {self.voice}, Text length: {len(text)}")
 
     def _upload_to_s3(self, audio_data: bytes, text: str) -> str:
         """
