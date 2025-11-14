@@ -81,10 +81,11 @@ def get_audio_response():
     """Returns SSML audio tag with random GitHub audio file."""
     try:
         audio_url = get_random_audio_url()
+        # Return just the audio tag - Alexa will wrap it in <speak>
         return f'<audio src="{audio_url}"/>'
     except Exception as e:
         logging.error(f"Error: {str(e)}")
-        return f"<speak>Sorry, there was a problem.</speak>"
+        return "<speak>Sorry, there was a problem.</speak>"
 
 
 ###############################################################################
@@ -99,27 +100,21 @@ logger.setLevel(logging.INFO)
 def launch_request_handler(handler_input):
     """Plays random audio and ends session."""
     audio_ssml = get_audio_response()
-    return handler_input.response_builder.speak(audio_ssml).set_card(
-        SimpleCard(SKILL_NAME, RESPONSE)
-    ).set_should_end_session(True).response
+    return handler_input.response_builder.speak(audio_ssml).set_should_end_session(True).response
 
 
 @sb.request_handler(can_handle_func=is_intent_name("MotivateIntent"))
 def motivate_intent_handler(handler_input):
     """Plays random audio and ends session."""
     audio_ssml = get_audio_response()
-    return handler_input.response_builder.speak(audio_ssml).set_card(
-        SimpleCard(SKILL_NAME, RESPONSE)
-    ).set_should_end_session(True).response
+    return handler_input.response_builder.speak(audio_ssml).set_should_end_session(True).response
 
 
 @sb.request_handler(can_handle_func=is_intent_name("AMAZON.HelpIntent"))
 def help_intent_handler(handler_input):
     """Help handler."""
     audio_ssml = get_audio_response()
-    return handler_input.response_builder.speak(audio_ssml).set_card(
-        SimpleCard(SKILL_NAME, "Ask me to motivate you!")
-    ).set_should_end_session(True).response
+    return handler_input.response_builder.speak(audio_ssml).set_should_end_session(True).response
 
 
 @sb.request_handler(
