@@ -69,6 +69,7 @@ def get_random_audio_url():
         logging.warning(f"Expected 10 files, but found {len(audio_files)} files")
     
     selected_file = random.choice(audio_files)
+    # Simple filenames like "1.mp3" don't need encoding, but encode just to be safe
     encoded_file = urllib.parse.quote(selected_file, safe='')
     url = f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_AUDIO_FOLDER}/{encoded_file}"
     
